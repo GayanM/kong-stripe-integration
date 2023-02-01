@@ -43,7 +43,7 @@ app.post('/register', jsonParser,
   var response = await fetch(`${process.env.KONG_URL}/consumers/`, {
     method: 'post',
     body: JSON.stringify(body),
-    headers: {'Content-Type': 'application/json','Kong-Admin-Token':'HWwljNtOuX'}
+    headers: {'Content-Type': 'application/json','Kong-Admin-Token':'Ask from Gayan'}
   });
   var data = await response.json();
   console.log('Kong consumer created')
