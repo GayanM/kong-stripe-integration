@@ -22,14 +22,14 @@ app.use(moesifMiddleware);
 
 app.post('/register', jsonParser,
  async (req, res) => {
-   console.log('Test...')
     // create Stripe customer
    const customer = await stripe.customers.create({
       email: req.body.email,
       name: `${req.body.firstname} ${req.body.lastname}`,
       description: 'Customer created through /register endpoint',
     });
-    console.log('Stripe customer created')
+    console.log('Stripe Customer: ' + req.body.email + ' is created with customer id: ' + customer.id)
+
     // create Stripe subscription
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
@@ -37,19 +37,12 @@ app.post('/register', jsonParser,
         { price: process.env.STRIPE_PRICE_KEY },
       ],
     });
-    console.log('Stripe subscription created')
-  //create Kong consumer 
-  var body = { username: req.body.email, custom_id: customer.id };
-  var response = await fetch(`${process.env.KONG_URL}/consumers/`, {
-    method: 'post',
-    body: JSON.stringify(body),
-    headers: {'Content-Type': 'application/json','Kong-Admin-Token':'Ask from Gayan'}
-  });
-  var data = await response.json();
-  console.log('Kong consumer created')
+    console.log('Stripe subscription created with subscription id: ' + subscription.id)
+
   // create user and company in Moesif
   var company = { companyId: subscription.id };
   moesifMiddleware.updateCompany(company);
+  console.log('Company created in Moesif')
 
   var user = {
     userId: customer.id,
@@ -62,23 +55,36 @@ app.post('/register', jsonParser,
     }
   };
   moesifMiddleware.updateUser(user);
+  console.log('User created in Moesif')
+
+  //create Kong consumer
+  var body = { username: req.body.email, custom_id: customer.id };
+  var response = await fetch(`${process.env.KONG_URL}/consumers/`, {
+    method: 'post',
+    body: JSON.stringify(body),
+    headers: {'Content-Type': 'application/json','Kong-Admin-Token':'HWwljNtOuX'}
+  });
+  var data = await response.json();
+  console.log('Kong consumer created')
 
   // send back a new API key for use
   var response = await fetch(`${process.env.KONG_URL}/consumers/${req.body.email}/key-auth`, {
     method: 'post',
-    headers: {'Kong-Admin-Token':'ask from Gayan'}
+    headers: {'Kong-Admin-Token':'HWwljNtOuX'}
   });
   var data = await response.json();
   var kongAPIKey = data.key;
+  console.log('Kong created apiKey: ' + kongAPIKey)
 
   // add API key to users metadata in Moesif
   var user = {
     userId: customer.id,
     metadata: {
-      apikey: kongAPIKey,
+      apikey: kongAPIKey
     }
   };
   moesifMiddleware.updateUser(user);
+  console.log('Added apiKey to User Metadata')
 
   res.status(200);
   res.send({ apikey: kongAPIKey });
